@@ -8,10 +8,10 @@ use std::{
 
 fn main() {
     load_data();
-    prepare_data();
+    preprocess_data();
 }
 
-fn prepare_data() {
+fn preprocess_data() {
     let data_path = "data.txt";
     let contents = fs::read_to_string(data_path).expect("Cannot read data file");
     let mut docs: Vec<&str> = contents
@@ -46,7 +46,8 @@ fn load_data() {
         Some(i) => (&without_scheme[..i], &without_scheme[i..]),
         None => (without_scheme.as_str(), "/"),
     };
-    let tcp = TcpStream::connect(format!("{host}:443")).expect("Could not Connect to the server");
+    let tcp = TcpStream::connect(format!("{host}:443")).expect("Could not Connl
+        ect to the server");
 
     let connector = TlsConnector::new().expect("Failed to create TLS connector");
     let mut stream = connector.connect(host, tcp).expect("TLS handshake failed");
