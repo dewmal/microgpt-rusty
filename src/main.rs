@@ -1,8 +1,41 @@
 use native_tls::TlsConnector;
 use std::{
+    fs,
     io::{BufRead, BufReader, Read, Write},
     net::TcpStream,
+    time::{SystemTime, UNIX_EPOCH},
 };
+
+fn main() {
+    load_data();
+    prepare_data();
+}
+
+fn prepare_data() {
+    let data_path = "data.txt";
+    let contents = fs::read_to_string(data_path).expect("Cannot read data file");
+    let mut docs: Vec<&str> = contents
+        .lines()
+        .map(|l| l.trim())
+        .filter(|l| !l.is_empty())
+        .collect();
+    let mut seed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos() as u64;
+
+    // Random Algoritm
+    for i in (1..docs.len()).rev() {
+        seed ^= seed << 13;
+        seed ^= seed >> 7;
+        seed ^= seed << 17;
+
+        let j = seed as usize % (i + 1);
+        docs.swap(i, j);
+    }
+
+    println!("num docs: {}", docs.len());
+}
 
 fn load_data() {
     let url = "https://raw.githubusercontent.com/karpathy/makemore/refs/heads/master/names.txt";
@@ -46,8 +79,4 @@ fn load_data() {
 fn save_to_file(file_name: &str, contents: &str) {
     std::fs::write(file_name, contents).expect("Could not save the file");
     println!("File saved as: {file_name}")
-}
-
-fn main() {
-    load_data();
 }
