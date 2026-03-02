@@ -1,7 +1,6 @@
-use crate::value::ValueRef;
+use crate::value::{Value, ValueRef};
 pub(crate) struct Param {
-    pub(crate) data: f64, // Weight Value
-    grad: f64,            // Gradient (Update with backward pass)
+    pub(crate) v: ValueRef, // Gradient (Update with backward pass)
 }
 
 pub(crate) struct MatrixView {
@@ -16,21 +15,21 @@ impl MatrixView {
     }
 }
 
-struct LayerParams {
-    attn_wq: MatrixView,
-    attn_wk: MatrixView,
-    attn_wv: MatrixView,
-    attn_wo: MatrixView,
-    mlp_fc1: MatrixView,
-    mlp_fc2: MatrixView,
+pub(crate) struct LayerParams {
+    pub(crate) attn_wq: MatrixView,
+    pub(crate) attn_wk: MatrixView,
+    pub(crate) attn_wv: MatrixView,
+    pub(crate) attn_wo: MatrixView,
+    pub(crate) mlp_fc1: MatrixView,
+    pub(crate) mlp_fc2: MatrixView,
 }
 
 pub(crate) struct Model {
-    pub params: Vec<Param>,
-    wte: MatrixView,
-    wpe: MatrixView,
-    lm_head: MatrixView,
-    layers: Vec<LayerParams>,
+    pub(crate) params: Vec<Param>,
+    pub(crate) wte: MatrixView,
+    pub(crate) wpe: MatrixView,
+    pub(crate) lm_head: MatrixView,
+    pub(crate) layers: Vec<LayerParams>,
 }
 
 impl Model {
@@ -49,8 +48,7 @@ impl Model {
             let start = params.len();
             for _ in 0..(rows * cols) {
                 params.push(Param {
-                    data: gaussian(&mut rng, std),
-                    grad: 0.0,
+                    v: Value::leaf(gaussian(&mut rng, std)),
                 });
             }
             MatrixView { rows, cols, start }
@@ -82,8 +80,17 @@ impl Model {
             layers,
         }
     }
+
+    pub(crate) fn row(&self, m: &MatrixView, r: usize) -> Vec<ValueRef> {
+        let mut out = Vec::with_capacity(m.cols);
+        for c in 0..m.cols {
+            let idx = m.index(r, c);
+            out.push(Value::leaf(self.params[idx].v.borrow().data));
+        }
+        out
+    }
 }
-type KV = Vec<Vec<Vec<ValueRef>>>;
+pub(crate) type KV = Vec<Vec<Vec<ValueRef>>>;
 
 pub(crate) fn new_kv(n_layer: usize) -> (KV, KV) {
     let keys = (0..n_layer).map(|_| Vec::new()).collect();
@@ -106,4 +113,16 @@ fn gaussian(seed: &mut u64, std: f64) -> f64 {
     let normal = (-2.0 * u1.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos();
 
     normal * std
+}
+fn zero_grad(model: &mut Model) {
+    for p in &mut model.params {
+        p.v.borrow_mut().grad = 0.0;
+    }
+}
+
+fn sgd_step(model: &mut Model, lr: f64) {
+    for p in &mut model.params {
+        let mut pb = p.v.borrow_mut();
+        pb.data -= lr * pb.grad;
+    }
 }

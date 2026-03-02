@@ -1,4 +1,5 @@
 mod data;
+mod gpt;
 mod math;
 mod model;
 mod tokenizer;

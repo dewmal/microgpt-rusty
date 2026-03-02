@@ -1,13 +1,13 @@
 use crate::model::{MatrixView, Model};
 use crate::value::{Value, ValueRef};
 
-fn linear_vec(x: &[ValueRef], model: &Model, w: &MatrixView) -> Vec<ValueRef> {
+pub(crate) fn linear_vec(x: &[ValueRef], model: &Model, w: &MatrixView) -> Vec<ValueRef> {
     assert_eq!(x.len(), w.cols);
     let mut out = Vec::with_capacity(w.rows);
     for r in 0..w.rows {
         let mut acc = Value::leaf(0.0);
         for c in 0..w.cols {
-            let wij = model.params[w.index(r, c)].data;
+            let wij = model.params[w.index(r, c)].v.borrow().data;
             let wv = Value::leaf(wij);
             acc = &acc + &(&wv * &x[c]);
         }
@@ -15,21 +15,21 @@ fn linear_vec(x: &[ValueRef], model: &Model, w: &MatrixView) -> Vec<ValueRef> {
     }
     out
 }
-fn vsum(x: &[ValueRef]) -> ValueRef {
+pub(crate) fn vsum(x: &[ValueRef]) -> ValueRef {
     let mut acc = Value::leaf(0.0);
     for xi in x {
         acc = &acc + xi;
     }
     acc
 }
-fn vadd(a: &[ValueRef], b: &[ValueRef]) -> Vec<ValueRef> {
+pub(crate) fn vadd(a: &[ValueRef], b: &[ValueRef]) -> Vec<ValueRef> {
     assert_eq!(a.len(), b.len());
     a.iter().zip(b).map(|(x, y)| x + y).collect()
 }
-fn vscale(x: &[ValueRef], s: f64) -> Vec<ValueRef> {
+pub(crate) fn vscale(x: &[ValueRef], s: f64) -> Vec<ValueRef> {
     x.iter().map(|xi| xi * s).collect()
 }
-fn rmsnorm(x: &[ValueRef]) -> Vec<ValueRef> {
+pub(crate) fn rmsnorm(x: &[ValueRef]) -> Vec<ValueRef> {
     let n = x.len() as f64;
     let mut sq = Vec::with_capacity(x.len());
     for xi in x {
@@ -40,7 +40,7 @@ fn rmsnorm(x: &[ValueRef]) -> Vec<ValueRef> {
     let inv_sqrt = Value::powf(&(&ms + &eps), -0.5);
     x.iter().map(|xi| xi * &inv_sqrt).collect()
 }
-fn softmax(logits: &[ValueRef]) -> Vec<ValueRef> {
+pub(crate) fn softmax(logits: &[ValueRef]) -> Vec<ValueRef> {
     // take max in data-space (constant)
     let mut maxv = f64::NEG_INFINITY;
     for v in logits {

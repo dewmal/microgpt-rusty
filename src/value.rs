@@ -22,7 +22,7 @@ pub struct Value {
     // scalar vlaue
     pub(crate) data: f64,
     // dL/d (this)
-    grad: f64,
+    pub(crate) grad: f64,
     //Graph Structure
     children: Vec<ValueRef>,
     // local derivative of this node w.r.t each child
