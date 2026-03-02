@@ -1,5 +1,6 @@
 use native_tls::TlsConnector;
 use std::{
+    collections::HashSet,
     f64, fs,
     io::{BufRead, BufReader, Read, Write},
     net::TcpStream,
@@ -15,7 +16,7 @@ fn main() {
     tokenizer();
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct ValueRef(Rc<RefCell<Value>>);
 impl ValueRef {
     fn borrow(&self) -> std::cell::Ref<Value> {
@@ -200,6 +201,53 @@ impl<'a> Div<&'a ValueRef> for f64 {
     }
 }
 
+impl ValueRef {
+    fn id(&self) -> usize {
+        Rc::as_ptr(&self.0) as usize
+    }
+
+    pub fn backward(&self) {
+        // Topological Order
+        let mut graph: Vec<ValueRef> = Vec::new();
+        let mut visited: HashSet<usize> = HashSet::new();
+
+        fn build_graph(v: &ValueRef, visited: &mut HashSet<usize>, graph: &mut Vec<ValueRef>) {
+            let vid = v.id();
+            if visited.contains(&vid) {
+                return;
+            }
+            visited.insert(vid);
+
+            //Copy children
+            let children = v.borrow().children.clone();
+            for child in &children {
+                build_graph(child, visited, graph);
+            }
+
+            graph.push(ValueRef(Rc::clone(&v.0)));
+        }
+
+        build_graph(self, &mut visited, &mut graph);
+
+        // Seed gradient
+        self.borrow_mut().grad = 1.0;
+
+        // Propagte grads in reverse graph order
+        for v in graph.into_iter().rev() {
+            // Copy
+            // Drop Borrow before mutating children
+            let (v_grad, children, locals) = {
+                let vb = v.borrow();
+                (vb.grad, vb.children.clone(), vb.local_grads.clone())
+            };
+
+            for (child, local_grad) in children.iter().into_iter().zip(locals.into_iter()) {
+                child.borrow_mut().grad += local_grad * v_grad
+            }
+        }
+    }
+}
+
 fn tokenizer() {
     let docs = preprocess_data();
     let bos = docs.len();
@@ -365,5 +413,19 @@ mod test {
         let y = &Value::leaf(-3.0);
         assert_eq!(x + y, Value::leaf(-5.0)); // -2 + -3 = -5
         assert_eq!(x * y, Value::leaf(6.0)); // -2 * -3 = 6
+    }
+
+    #[test]
+    fn test_backward_mul() {
+        let x = Value::leaf(2.0);
+        let y = Value::leaf(3.0);
+
+        let z = &x * &y; // z = x*y
+        z.backward();
+
+        // dz/dx = y = 3
+        assert!((x.borrow().grad - 3.0).abs() < 1e-9);
+        // dz/dy = x = 2
+        assert!((y.borrow().grad - 2.0).abs() < 1e-9);
     }
 }
