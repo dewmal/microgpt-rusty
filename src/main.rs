@@ -7,7 +7,7 @@ use std::{
 };
 
 use std::cell::RefCell;
-use std::ops::Add;
+use std::ops::{Add, Mul};
 use std::rc::Rc;
 
 fn main() {
@@ -59,6 +59,20 @@ impl Value {
             local_grads,
         })))
     }
+
+    pub fn powf(x: ValueRef, n: f64) -> ValueRef {
+        let x_data = x.borrow().data;
+        let data = x_data.powf(n);
+
+        // d(x^n)/dx = n * x^(n-1)
+        let local = if n == 0.0 {
+            0.0 // derivate of constant 1 wrt x is 0
+        } else {
+            n * x_data.powf(n - 1.0)
+        };
+
+        Value::node(data, vec![ValueRef(Rc::clone(&x.0))], vec![local])
+    }
 }
 
 impl Add for ValueRef {
@@ -67,6 +81,23 @@ impl Add for ValueRef {
         let data = self.borrow().data + other.borrow().data;
 
         Value::node(data, vec![self, other], vec![1.0, 1.0])
+    }
+}
+
+impl<'a, 'b> Mul<&'b ValueRef> for &'a ValueRef {
+    type Output = ValueRef;
+
+    fn mul(self, other: &'b ValueRef) -> ValueRef {
+        let x = self.borrow().data;
+        let y = other.borrow().data;
+
+        let data = x * y;
+        // local grads: dz/dx, dy/dx = x
+        Value::node(
+            data,
+            vec![ValueRef(Rc::clone(&self.0)), ValueRef(Rc::clone(&other.0))],
+            vec![y, x],
+        )
     }
 }
 
