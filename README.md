@@ -53,10 +53,10 @@ Replace your **Benchmark** section with this shorter version:
 
 Measured total runtime:
 
-* **Rust**: `25,385,296,100 ns`
+* **Rust**: `26,203,553,000 ns`
 * **Python**: `164,041,600,500 ns`
 
-Rust runs **~6.5× faster**.
+Rust runs **~6.26× faster**.
 
 **Why?**
 
