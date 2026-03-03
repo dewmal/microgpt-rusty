@@ -2,6 +2,7 @@ mod data;
 mod gpt;
 mod math;
 mod model;
+mod optim;
 mod tokenizer;
 mod value;
 
