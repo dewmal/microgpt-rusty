@@ -16,7 +16,7 @@ pub fn train(
     block_size: usize,
     num_steps: usize,
 ) {
-    let mut opt = Adam::new(model.params.len(), 0.01, 0.85, 0.99, 1e8, num_steps);
+    let mut opt = Adam::new(model.params.len(), 0.01, 0.85, 0.99, 1e-8, num_steps);
 
     for step in 0..num_steps {
         let doc = &docs[step % docs.len()];

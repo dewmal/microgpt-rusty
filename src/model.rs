@@ -85,7 +85,7 @@ impl Model {
         let mut out = Vec::with_capacity(m.cols);
         for c in 0..m.cols {
             let idx = m.index(r, c);
-            out.push(Value::leaf(self.params[idx].v.borrow().data));
+            out.push(self.params[idx].v.clone()); // <-- use param node
         }
         out
     }

@@ -7,8 +7,7 @@ pub(crate) fn linear_vec(x: &[ValueRef], model: &Model, w: &MatrixView) -> Vec<V
     for r in 0..w.rows {
         let mut acc = Value::leaf(0.0);
         for c in 0..w.cols {
-            let wij = model.params[w.index(r, c)].v.borrow().data;
-            let wv = Value::leaf(wij);
+            let wv = model.params[w.index(r, c)].v.clone(); // <-- use param node
             acc = &acc + &(&wv * &x[c]);
         }
         out.push(acc);
