@@ -1,7 +1,8 @@
-use crate::train::train;
+use crate::{inference::sample_name, train::train};
 
 mod data;
 mod gpt;
+mod inference;
 mod math;
 mod model;
 mod optim;
@@ -22,20 +23,35 @@ fn main() {
 
     let mut model = model::Model::new(vocab_size, block_size, n_layer, n_embed);
     println!("Num params: {}", model.params.len());
-
+    let cfg = &gpt::GptConfig {
+        vocab_size,
+        block_size,
+        n_layer,
+        n_head,
+        n_embed,
+    };
     train(
         &mut model,
-        &gpt::GptConfig {
-            vocab_size,
-            block_size,
-            n_layer,
-            n_head,
-            n_embed,
-        },
+        cfg,
         &tokenizer_info.docs,
         &tokenizer_info.uchars,
         tokenizer_info.bos,
         block_size,
         num_steps,
     );
+
+    let temprature = 0.5;
+    println!("inference");
+    let mut seed: u64 = 456454;
+    for i in 0..20 {
+        let name = sample_name(
+            &model,
+            cfg,
+            &tokenizer_info.uchars,
+            tokenizer_info.bos,
+            temprature,
+            &mut seed,
+        );
+        println!("Sample {:2}: {}", i + 1, name);
+    }
 }
