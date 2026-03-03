@@ -9,9 +9,10 @@ Everything else is just efficiency.
 import math  # math.log, math.exp
 import os  # os.path.exists
 import random  # random.seed, random.choices, random.gauss, random.shuffle
+import time
 
 random.seed(42)  # Let there be order among chaos
-
+start_time = time.perf_counter_ns()
 # Let there be a Dataset `docs`: list[str] of documents (e.g. a list of names)
 if not os.path.exists("input.txt"):
     import urllib.request
@@ -258,3 +259,9 @@ for sample_idx in range(20):
             break
         sample.append(uchars[token_id])
     print(f"sample {sample_idx + 1:2d}: {''.join(sample)}")
+
+end_time = time.perf_counter_ns()
+
+duration_ns = end_time - start_time
+
+print(f"Duration: {duration_ns} ns")

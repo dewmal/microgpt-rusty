@@ -1,5 +1,5 @@
 use crate::{inference::sample_name, train::train};
-
+use std::time::Instant;
 mod data;
 mod gpt;
 mod inference;
@@ -11,6 +11,7 @@ mod train;
 mod value;
 
 fn main() {
+    let start = Instant::now();
     data::load_data();
     let tokenizer_info = tokenizer::tokenizer();
 
@@ -54,4 +55,6 @@ fn main() {
         );
         println!("Sample {:2}: {}", i + 1, name);
     }
+    let duration = start.elapsed();
+    println!("Duration: {} ns", duration.as_nanos());
 }
